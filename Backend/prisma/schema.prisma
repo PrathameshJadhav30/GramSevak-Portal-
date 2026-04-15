@@ -1,0 +1,134 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  admin
+  villager
+}
+
+enum ApplicationStatus {
+  pending
+  approved
+  done
+  rejected
+}
+
+enum NoticeLanguage {
+  en
+  mr
+}
+
+enum ComplaintStatus {
+  open
+  in_progress
+  resolved
+}
+
+model User {
+  id           String               @id @default(uuid()) @db.Uuid
+  name         String
+  email        String               @unique
+  password     String
+  role         Role                 @default(villager)
+  mobile       String
+  address      String
+  applications ServiceApplication[]
+  complaints   Complaint[]
+  documents    Document[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@map("users")
+}
+
+model Service {
+  id           String               @id @default(uuid()) @db.Uuid
+  name         String               @unique
+  description  String
+  isActive     Boolean              @default(true)
+  applications ServiceApplication[]
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  @@map("services")
+}
+
+model ServiceApplication {
+  id         String            @id @default(uuid()) @db.Uuid
+  userId     String            @db.Uuid
+  serviceId  String            @db.Uuid
+  status     ApplicationStatus @default(pending)
+  documents  Json?
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  service    Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([serviceId])
+  @@map("service_applications")
+}
+
+model Notice {
+  id          String         @id @default(uuid()) @db.Uuid
+  title       String
+  description String
+  language    NoticeLanguage
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([language])
+  @@map("notices")
+}
+
+model CommitteeMember {
+  id         String   @id @default(uuid()) @db.Uuid
+  name       String
+  position   String
+  photoUrl   String?
+  contact    String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("committee_members")
+}
+
+model Complaint {
+  id          String          @id @default(uuid()) @db.Uuid
+  userId      String          @db.Uuid
+  title       String
+  description String
+  status      ComplaintStatus @default(open)
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@map("complaints")
+}
+
+model Document {
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @db.Uuid
+  fileUrl    String
+  type       String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@map("documents")
+}
